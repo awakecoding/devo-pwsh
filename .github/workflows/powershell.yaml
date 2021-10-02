@@ -1,0 +1,38 @@
+name: PowerShell
+on: workflow_dispatch
+jobs:
+  build:
+    name: PowerShell [${{matrix.arch}}-${{matrix.os}}]
+    runs-on: ${{matrix.runner}}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ x64 ]
+        os: [ windows, macos, linux ]
+        version: [ 7.2.0 ]
+
+        include:
+          - os: windows
+            runner: windows-2019
+          - os: macos
+            runner: macos-latest
+          - os: linux
+            runner: ubuntu-18.04
+  
+    steps:
+      - name: Clone PowerShell ${{matrix.version}}
+        uses: actions/checkout@v2
+        with:
+          repository: PowerShell/PowerShell
+          ref: v7.2.0-preview.10
+          path: PowerShell
+
+      - name: Build PowerShell
+        run: |
+          pwsh ./ci/tlk.ps1 build -Architecture ${{matrix.arch}}
+
+      - name: Upload PowerShell package
+        uses: actions/upload-artifact@v2
+        with:
+          name: PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}
+          path: output/PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}.tar.gz
