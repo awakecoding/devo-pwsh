@@ -20,6 +20,9 @@ jobs:
             runner: ubuntu-18.04
   
     steps:
+      - name: Clone project
+        uses: actions/checkout@v2
+
       - name: Clone PowerShell ${{matrix.version}}
         uses: actions/checkout@v2
         with:
