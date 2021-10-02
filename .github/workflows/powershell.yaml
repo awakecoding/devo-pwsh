@@ -30,6 +30,12 @@ jobs:
           ref: v7.2.0-preview.10
           path: PowerShell
 
+      - name: Bootstrap PowerShell
+        shell: pwsh
+        run: |
+          Import-Module ./PowerShell/build.psm1
+          Start-PSBootstrap
+
       - name: Build PowerShell
         run: |
           pwsh ./ci/tlk.ps1 build -Architecture ${{matrix.arch}}
