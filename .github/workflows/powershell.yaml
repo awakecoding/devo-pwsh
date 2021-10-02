@@ -12,6 +12,9 @@ jobs:
         version: [ 7.2.0 ]
 
         include:
+          - version: 7.2.0
+            git-ref: v7.2.0-preview.10
+
           - os: windows
             runner: windows-2019
           - os: macos
@@ -27,7 +30,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: PowerShell/PowerShell
-          ref: v7.2.0-preview.10
+          ref: ${{matrix.git-ref}}
           path: PowerShell
 
       - name: Bootstrap PowerShell
