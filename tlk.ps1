@@ -40,18 +40,15 @@ function Invoke-TlkBootstrap {
 function Invoke-TlkBuild {
     param(
         [ValidateSet('windows','macos','linux')]
-        [AllowNull()]
         [string] $Platform,
         [ValidateSet('x86','x64','arm','arm64')]
-        [AllowNull()]
         [string] $Architecture,
         [string] $Distribution,
         [ValidateSet('Debug','Release')]
-        [AllowNull()]
         [string] $Configuration,
         [string] $Runtime,
         [string] $OutputPath,
-        [switch] $ArchiveFile
+        [string] $ArchiveFile
     )
 
     $HostPlatform = Get-TlkPlatform
