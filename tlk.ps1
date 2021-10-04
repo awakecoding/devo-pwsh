@@ -53,42 +53,40 @@ function Invoke-TlkBuild {
 
     $HostPlatform = Get-TlkPlatform
     
-    if (-Not $Platform) {
+    if ([string]::IsNullOrEmpty($Platform)) {
         $Platform = $HostPlatform
     }
 
-    if (-Not $Architecture) {
+    if ([string]::IsNullOrEmpty($Architecture)) {
         $Architecture = "x64"
     }
 
-    if (-Not $OutputPath) {
-        $OutputPath = Join-Path $PWD "PowerShell-$Platform-$Architecture"
+    if ([string]::IsNullOrEmpty($OutputPath)) {
+        $OutputPath = Join-Path $(Get-Location) "PowerShell-$Platform-$Architecture"
     }
 
     $CrossCompiling = ($Platform -ne $HostPlatform)
 
-    if (-Not $Configuration) {
+    if ([string]::IsNullOrEmpty($Configuration)) {
         $Configuration = "Release"
     }
 
-    $RuntimeArch = $Architecture
-
-    $Runtime = switch ($Platform) {
-        "windows" {
-            if ($RuntimeArch -Like 'arm*') {
-                "win-$RuntimeArch"
-            } else {
-                "win7-$RuntimeArch"
+    if ([string]::IsNullOrEmpty($Runtime)) {
+        $Runtime = switch ($Platform) {
+            "windows" {
+                if ($Architecture -Like 'arm*') {
+                    "win-$Architecture"
+                } else {
+                    "win7-$Architecture"
+                }
             }
+            "macos" { "osx-$Architecture" }
+            "linux" { "linux-$Architecture" }
         }
-        "macos" { "osx-$RuntimeArch" }
-        "linux" { "linux-$RuntimeArch" }
-    }
-
-    if ($Distribution -eq 'alpine') {
-        $Runtime = "alpine-$RuntimeArch"
-    } elseif ($Distribution -eq 'ubuntu') {
-        $Runtime = "ubuntu.18.04-$RuntimeArch"
+    
+        if ($Distribution -Match '^alpine') {
+            $Runtime = "alpine-$Architecture"
+        }
     }
 
     $ForMinimalSize = $false
@@ -110,9 +108,9 @@ function Invoke-TlkBuild {
 
     Start-PSBuild @PSBuildParams
 
-    if ($ArchiveFile) {
+    if (-Not [string]::IsNullOrEmpty($ArchiveFile)) {
         Remove-Item $ArchiveFile -ErrorAction SilentlyContinue | Out-Null
-        & 'tar' '-czf' "$ArchiveFile" -C "$OutputPath" "."
+        & 'tar' '-czf' "$ArchiveFile" '-C' "$OutputPath" "."
     }
 }
 
