@@ -43,7 +43,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install git xz-utils ninja-build
-          sudo apt install libkrb5-dev
+          sudo apt install libkrb5-dev liblttng-ust-dev
           echo "BUILD_CMD=./build.sh" >> $GITHUB_ENV
 
       - name: Install clang+llvm
