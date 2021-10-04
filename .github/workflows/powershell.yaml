@@ -41,10 +41,12 @@ jobs:
 
       - name: Build PowerShell
         run: |
-          pwsh ./ci/tlk.ps1 build -Architecture ${{matrix.arch}}
+          pwsh tlk.ps1 build -Architecture ${{matrix.arch}} `
+            -OutputPath PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}} `
+            -ArchiveFile PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}.tar.gz
 
       - name: Upload PowerShell package
         uses: actions/upload-artifact@v2
         with:
           name: PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}
-          path: output/PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}.tar.gz
+          path: PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}.tar.gz
