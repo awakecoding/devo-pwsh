@@ -43,10 +43,10 @@ function Invoke-TlkBuild {
         [string] $Platform,
         [ValidateSet('x86','x64','arm','arm64')]
         [string] $Architecture,
-        [ValidateSet('debian','ubuntu','alpine')]
         [string] $Distribution,
         [ValidateSet('Debug','Release')]
         [string] $Configuration,
+        [string] $Runtime,
         [string] $OutputPath,
         [switch] $ArchiveFile
     )

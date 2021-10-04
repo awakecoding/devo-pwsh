@@ -36,14 +36,13 @@ jobs:
       - name: Bootstrap PowerShell
         shell: pwsh
         run: |
-          Import-Module ./PowerShell/build.psm1
-          Start-PSBootstrap
+          ./tlk.ps1 bootstrap
 
       - name: Build PowerShell
+        shell: pwsh
         run: |
-          pwsh tlk.ps1 build -Architecture ${{matrix.arch}} `
-            -OutputPath PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}} `
-            -ArchiveFile PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}.tar.gz
+          $OutputName = "PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}"
+          ./tlk.ps1 build -Architecture ${{matrix.arch}} -OutputPath $OutputName -ArchiveFile $OutputName.tar.gz
 
       - name: Upload PowerShell package
         uses: actions/upload-artifact@v2
