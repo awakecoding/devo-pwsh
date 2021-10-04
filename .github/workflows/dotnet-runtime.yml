@@ -100,7 +100,7 @@ jobs:
         working-directory: dotnet-runtime
         shell: pwsh
         run: |
-          & $Env:BUILD_CMD --restore
+          & $Env:BUILD_CMD -restore
 
       - name: Build .NET runtime
         working-directory: dotnet-runtime
