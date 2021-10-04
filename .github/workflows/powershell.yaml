@@ -42,7 +42,8 @@ jobs:
         shell: pwsh
         run: |
           $OutputName = "PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}"
-          ./tlk.ps1 build -Architecture ${{matrix.arch}} -OutputPath $OutputName -ArchiveFile $OutputName.tar.gz
+          ./tlk.ps1 build -Platform ${{matrix.os}} -Architecture ${{matrix.arch}} `
+            -OutputPath $OutputName -ArchiveFile $OutputName.tar.gz
 
       - name: Upload PowerShell package
         uses: actions/upload-artifact@v2
