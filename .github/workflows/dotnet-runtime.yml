@@ -96,11 +96,13 @@ jobs:
           arch: amd64
 
       - name: Restore nuget packages
+        working-directory: dotnet-runtime
         shell: pwsh
         run: |
           & $Env:BUILD_CMD --restore
 
       - name: Build .NET runtime
+        working-directory: dotnet-runtime
         shell: pwsh
         run: |
           & $Env:BUILD_CMD -c Release
