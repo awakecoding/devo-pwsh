@@ -29,7 +29,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install ninja 7zip wget
-          echo "BUILD_CMD=build.cmd" >> $Env:GITHUB_ENV
+          echo "BUILD_CMD=./build.cmd" >> $Env:GITHUB_ENV
 
       - name: Configure macOS runner
         if: runner.os == 'macOS'
@@ -43,6 +43,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install git xz-utils ninja-build
+          sudo apt install libkrb5-dev
           echo "BUILD_CMD=./build.sh" >> $GITHUB_ENV
 
       - name: Install clang+llvm
@@ -105,4 +106,4 @@ jobs:
         working-directory: dotnet-runtime
         shell: pwsh
         run: |
-          & $Env:BUILD_CMD -c Release
+          & $Env:BUILD_CMD -c Release -ninja
