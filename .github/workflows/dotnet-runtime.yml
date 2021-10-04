@@ -1,0 +1,106 @@
+name: .NET runtime
+on: workflow_dispatch
+jobs:
+  build:
+    name: .NET runtime [${{matrix.arch}}-${{matrix.os}}]
+    runs-on: ${{matrix.runner}}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ x86_64 ]
+        os: [ windows, macos, ubuntu-18.04, ubuntu-20.04 ]
+        version: [ 6.0.0 ]
+
+        include:
+          - version: 6.0.0
+            git-ref: v6.0.0-rc.1.21451.13
+
+          - os: windows
+            runner: windows-2019
+          - os: macos
+            runner: macos-latest
+          - os: ubuntu-18.04
+            runner: ubuntu-18.04
+          - os: ubuntu-20.04
+            runner: ubuntu-20.04
+  
+    steps:
+      - name: Configure Windows runner
+        if: runner.os == 'Windows'
+        run: |
+          choco install ninja 7zip wget
+          echo "BUILD_CMD=build.cmd" >> $Env:GITHUB_ENV
+
+      - name: Configure macOS runner
+        if: runner.os == 'macOS'
+        run: |
+          brew install ninja
+          echo "MACOSX_DEPLOYMENT_TARGET=10.12" >> $GITHUB_ENV
+          echo "BUILD_CMD=./build.sh" >> $GITHUB_ENV
+
+      - name: Configure Linux runner
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install git xz-utils ninja-build
+          echo "BUILD_CMD=./build.sh" >> $GITHUB_ENV
+
+      - name: Install clang+llvm
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $CLANG_LLVM_OS="windows"
+          $CLANG_LLVM_BASE_URL="https://github.com/awakecoding/llvm-prebuilt/releases/download/v2021.2.4"
+          $CLANG_LLVM_NAME="clang+llvm-12.0.1-x86_64-${CLANG_LLVM_OS}"
+          wget -q "${CLANG_LLVM_BASE_URL}/${CLANG_LLVM_NAME}.tar.xz"
+          cmd.exe /c "7z.exe x ${CLANG_LLVM_NAME}.tar.xz -so | 7z x -si -ttar -o`"C:/temp`""
+          mv "C:/temp/${CLANG_LLVM_NAME}" "C:/llvm"
+          echo "LLVM_DIR=C:/llvm/lib/cmake/llvm" >> $Env:GITHUB_ENV
+
+      - name: Install clang+llvm
+        if: runner.os == 'macOS'
+        run: |
+          CLANG_LLVM_OS="macos"
+          CLANG_LLVM_BASE_URL="https://github.com/awakecoding/llvm-prebuilt/releases/download/v2021.2.4"
+          CLANG_LLVM_NAME="clang+llvm-12.0.1-x86_64-${CLANG_LLVM_OS}"
+          wget -q "${CLANG_LLVM_BASE_URL}/${CLANG_LLVM_NAME}.tar.xz"
+          tar -xf "${CLANG_LLVM_NAME}.tar.xz" -C /tmp
+          sudo mv "/tmp/${CLANG_LLVM_NAME}" /opt/llvm
+          echo "LLVM_DIR=/opt/llvm/lib/cmake/llvm" >> $GITHUB_ENV
+          echo "PATH=$PATH:/opt/llvm/bin" >> $GITHUB_ENV
+
+      - name: Install clang+llvm
+        if: runner.os == 'Linux'
+        run: |
+          CLANG_LLVM_OS="ubuntu-$(lsb_release -rs)"
+          CLANG_LLVM_BASE_URL="https://github.com/awakecoding/llvm-prebuilt/releases/download/v2021.2.4"
+          CLANG_LLVM_NAME="clang+llvm-12.0.1-x86_64-${CLANG_LLVM_OS}"
+          wget -q "${CLANG_LLVM_BASE_URL}/${CLANG_LLVM_NAME}.tar.xz"
+          tar -xf "${CLANG_LLVM_NAME}.tar.xz" -C /tmp
+          sudo mv "/tmp/${CLANG_LLVM_NAME}" /opt/llvm
+          echo "LLVM_DIR=/opt/llvm/lib/cmake/llvm" >> $GITHUB_ENV
+          echo "PATH=$PATH:/opt/llvm/bin" >> $GITHUB_ENV
+          echo "BUILD_CMD=./build.sh" >> $GITHUB_ENV
+
+      - name: Clone .NET runtime ${{matrix.version}}
+        uses: actions/checkout@v2
+        with:
+          repository: dotnet/runtime
+          ref: ${{matrix.git-ref}}
+          path: dotnet-runtime
+
+      - name: Enable Windows environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Restore nuget packages
+        shell: pwsh
+        run: |
+          & $Env:BUILD_CMD --restore
+
+      - name: Build .NET runtime
+        shell: pwsh
+        run: |
+          & $Env:BUILD_CMD -c Release
