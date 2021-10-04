@@ -162,8 +162,8 @@ class TlkRecipe
             $Runtime = "alpine-$RuntimeArch"
             $Platform = "linux-alpine"
         } elseif ($this.Target.Distribution -eq 'ubuntu') {
-            $Runtime = "ubuntu.16.04-$RuntimeArch"
-            $Platform = "ubuntu-16.04"
+            $Runtime = "ubuntu.18.04-$RuntimeArch"
+            $Platform = "ubuntu-18.04"
         }
 
         $PSBuildPath = Join-Path $OutputPath "PowerShell-${PSVersion}-${Platform}-${RuntimeArch}"
@@ -187,26 +187,9 @@ class TlkRecipe
 
         Start-PSBuild @PSBuildParams
 
-        $ZipArchivePath = "$PSBuildPath.zip"
         $TarArchivePath = "$PSBuildPath.tar.gz"
-
-        @($ZipArchivePath, $TarArchivePath) | ForEach-Object {
-            if (Test-Path $_ -PathType 'Leaf') {
-                Remove-Item $_ -ErrorAction SilentlyContinue | Out-Null
-            }
-        }
-
-        Compress-Archive -Path "$PSBuildPath\*" -DestinationPath $ZipArchivePath -CompressionLevel Optimal 
-
-        if ($global:IsWindows) {
-            $TarFileName = $TarArchivePath.TrimEnd(".gz") | Split-Path -Leaf
-            cmd.exe /c "7z a -ttar -snl -so $TarFileName `"$PSBuildPath/*`" | 7z a -si $TarArchivePath"
-        } else {
-            Push-Location
-            Set-Location $PSBuildPath
-            & 'tar' '-czvf' $TarArchivePath '.'
-            Pop-Location
-        }
+        Remove-Item $TarArchivePath -ErrorAction SilentlyContinue | Out-Null
+        & 'tar' '-czf' "$TarArchivePath" -C "$PSBuildPath" "."
     }
 
     [void] Package_Windows() {
