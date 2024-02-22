@@ -9,25 +9,25 @@ jobs:
       matrix:
         arch: [ x64, arm64 ]
         os: [ windows, macos, linux ]
-        version: [ 7.2.0 ]
+        version: [ 7.4.1 ]
 
         include:
-          - version: 7.2.0
-            git-ref: v7.2.0-preview.10
+          - version: 7.4.1
+            git-ref: v7.4.1
 
           - os: windows
-            runner: windows-2019
+            runner: windows-2022
           - os: macos
-            runner: macos-10.15
+            runner: macos-13
           - os: linux
-            runner: ubuntu-18.04
+            runner: ubuntu-22.04
   
     steps:
       - name: Clone project
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Clone PowerShell ${{matrix.version}}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           repository: PowerShell/PowerShell
           ref: ${{matrix.git-ref}}
@@ -36,16 +36,40 @@ jobs:
       - name: Bootstrap PowerShell
         shell: pwsh
         run: |
-          ./tlk.ps1 bootstrap
+          Import-Module "./PowerShell/build.psm1" -Force
+          Start-PSBootstrap
 
       - name: Build PowerShell
         shell: pwsh
         run: |
+          Import-Module "./PowerShell/build.psm1" -Force
+          Start-PSBootstrap
+
+      - name: Build PowerShell
+        shell: pwsh
+        run: |
+          Import-Module "./PowerShell/build.psm1" -Force
+          $DotNetOs = @{'windows'='win';'macos'='osx';'linux'='linux'}['${{matrix.os}}']
+          $DotNetArch = '${{matrix.arch}}'
+          if (($DotNetOs -eq 'win') -and ($DotNetArch -eq 'x64')){
+            $DotNetOs = "win7"
+          }
+          $Runtime = "${DotNetOs}-${{matrix.arch}}"
           $OutputPath = Join-Path $PWD "PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}"
-          ./tlk.ps1 build -Platform ${{matrix.os}} -Architecture ${{matrix.arch}} -OutputPath "$OutputPath" -ArchiveFile "$OutputPath.tar.gz"
+          $ArchiveFile = "$OutputPath.tar.gz"
+          $PSBuildParams = @{
+            Configuration = "Release";
+            Runtime = $Runtime;
+            Output = $OutputPath;
+            ForMinimalSize = $false;
+            Detailed = $true;
+            Clean = $true;
+          }
+          Start-PSBuild @PSBuildParams
+          & 'tar' '-czf' "$ArchiveFile" '-C' "$OutputPath" "."
 
       - name: Upload PowerShell package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}
           path: PowerShell-${{matrix.version}}-${{matrix.os}}-${{matrix.arch}}.tar.gz
