@@ -1,0 +1,68 @@
+name: PowerShell SDK
+on: workflow_dispatch
+jobs:
+  build:
+    name: PowerShell SDK
+    runs-on: ubuntu-20.04
+  
+    steps:
+      - name: Clone project
+        uses: actions/checkout@v4
+
+      - name: Clone PowerShell
+        uses: actions/checkout@v4
+        with:
+          repository: PowerShell/PowerShell
+          ref: v7.4.1
+          path: PowerShell
+
+      - name: Build PowerShell SDK
+        shell: pwsh
+        working-directory: PowerShell
+        run: |
+          Import-Module .\build.psm1 -Force
+          Start-PSBootstrap
+          Start-PSBuild -Clean -PSModuleRestore -Configuration Release
+          Remove-Item .\nupkg-out -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
+          New-Item .\nupkg-out -ItemType Directory -Force
+          dotnet build ./src/Microsoft.PowerShell.SDK/Microsoft.PowerShell.SDK.csproj -c Release
+          New-Item ./nupkg-out/unix/lib/net8.0 -ItemType Directory | Out-Null
+          New-Item ./nupkg-out/ref/net8.0 -ItemType Directory | Out-Null
+          Copy-Item ./src/Microsoft.PowerShell.SDK/bin/Release/net8.0/Microsoft.PowerShell.SDK*.dll ./nupkg-out/unix/lib/net8.0
+          Copy-Item ./src/Microsoft.PowerShell.SDK/bin/Release/net8.0/Microsoft.PowerShell.SDK*.xml ./nupkg-out/unix/lib/net8.0
+          Copy-Item ./src/Microsoft.PowerShell.SDK/bin/Release/net8.0/*.dll ./nupkg-out/ref/net8.0
+          Copy-Item ./src/Microsoft.PowerShell.SDK/bin/Release/net8.0/*.xml ./nupkg-out/ref/net8.0
+          $AnyAnyRuntimesDir = "./nupkg-out/contentFiles/any/any/runtimes"
+          New-Item $AnyAnyRuntimesDir -ItemType Directory | Out-Null
+          Get-Item ./src/Modules/Unix/*/*.ps* | ForEach-Object {
+            ($ModuleName, $ModuleFile) = ($_.FullName -Replace ".*src/Modules/Unix/","") -Split "/"
+            $DestinationDir = "$AnyAnyRuntimesDir/unix/lib/net8.0/Modules/$ModuleName"
+            New-Item $DestinationDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+            Copy-Item $_ $DestinationDir
+          }
+          Get-Item ./src/Modules/Windows/*/*.ps* | ForEach-Object {
+            ($ModuleName, $ModuleFile) = ($_.FullName -Replace ".*src/Modules/Windows/","") -Split "/"
+            $DestinationDir = "$AnyAnyRuntimesDir/win/lib/net8.0/Modules/$ModuleName"
+            New-Item $DestinationDir -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
+            Copy-Item $_ $DestinationDir
+          }
+          $PSVersion = Get-PSVersion -OmitCommitId
+          wget "https://www.nuget.org/api/v2/package/Microsoft.PowerShell.SDK/$PSVersion" -O "Microsoft.PowerShell.SDK.${PSVersion}.nupkg"
+          Remove-Item ./nupkg-prod -Recurse -Force -ErrorAction SilentlyContinue
+          Expand-Archive "./Microsoft.PowerShell.SDK.${PSVersion}.nupkg" nupkg-prod
+          Get-ChildItem -Path ./nupkg-prod -Include @('*.nuspec','*.png','*.xml') -Recurse -Depth 1 | % { Copy-Item $_ ./nupkg-out -Force }
+          Copy-Item "./nupkg-prod/*.nuspec" ./nupkg-out/ -Force
+          Copy-Item "./nupkg-prod/*.png" ./nupkg-out/ -Force
+          Remove-Item ./nupkg-out/contentFiles/any/any/ref -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item ./nupkg-prod/contentFiles/any/any/ref ./nupkg-out/contentFiles/any/any/ref -Recurse
+          New-Item "./package" -ItemType Directory | Out-Null
+          Set-Location ./nupkg-out
+          nuget pack
+          Move-Item *.nupkg ../package
+          Set-Location ..
+
+      - name: Upload PowerShell package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerShell-SDK
+          path: "PowerShell/package/*.nupkg"
